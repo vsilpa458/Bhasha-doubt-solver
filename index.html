@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bhasha Doubt Solver</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            color: #222;
+        }
+
+        header {
+            background: #4338ca;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 25px auto;
+            padding: 15px;
+        }
+
+        #chat {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 10px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .bot {
+            background: #eef2ff;
+            margin-right: 30px;
+        }
+
+        .student {
+            background: #dcfce7;
+            margin-left: 30px;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        input {
+            flex: 1;
+            min-width: 0;
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #4338ca;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>📚 Bhasha Doubt Solver</h1>
+        <p>Your personal AI learning companion</p>
+    </header>
+
+    <main>
+        <div id="chat" aria-live="polite">
+            <div class="message bot">
+                Hello! Welcome to Bhasha Doubt Solver.
+
+                Tell me the topic you are struggling with.
+                Explain what you currently understand, and I will
+                help you discover and correct your misconceptions.
+            </div>
+        </div>
+
+        <form id="form">
+            <input
+                id="message"
+                placeholder="Type your doubt here..."
+                autocomplete="off"
+                required
+            >
+
+            <button id="send" type="submit">Send</button>
+        </form>
+
+        <p class="subtitle">
+            Learn through hints, questions, and personalized explanations.
+        </p>
+    </main>
+
+    <script>
+        const chat = document.getElementById("chat");
+        const form = document.getElementById("form");
+        const input = document.getElementById("message");
+        const sendButton = document.getElementById("send");
+
+        let history = [];
+
+        function addMessage(text, type) {
+            const div = document.createElement("div");
+
+            div.className = "message " + type;
+            div.textContent = text;
+
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+
+            return div;
+        }
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addMessage(message, "student");
+
+            const previousHistory = [...history];
+
+            history.push({
+                role: "user",
+                content: message
+            });
+
+            input.value = "";
+            sendButton.disabled = true;
+            sendButton.textContent = "Thinking...";
+
+            const loading = addMessage(
+                "Thinking about your question...",
+                "bot"
+            );
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message,
+                        history: previousHistory
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Request failed"
+                    );
+                }
+
+                loading.textContent = data.reply;
+
+                history.push({
+                    role: "assistant",
+                    content: data.reply
+                });
+
+            } catch (error) {
+                loading.textContent =
+                    "Something went wrong: " + error.message;
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = "Send";
+                input.focus();
+            }
+        });
+    </script>
+</body>
+</html>
